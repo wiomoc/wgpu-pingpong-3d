@@ -25,7 +25,6 @@ pub struct Vertex {
     position: [f32; 3],
     normal: [f32; 3],
     texture: [f32; 2],
-    style: u32,
 }
 
 unsafe impl Pod for Vertex {}
@@ -34,8 +33,14 @@ unsafe impl Zeroable for Vertex {}
 pub type Mesh = Vec<Vertex>;
 
 impl ObjFile {
-    pub fn flatten(&self) -> Mesh {
-        let mut mesh = Vec::with_capacity(self.indices.len() * 3);
+    pub fn flatten(&self) -> Vec<Mesh> {
+        let mut meshes: Vec<Mesh> = (0..self
+            .materials
+            .as_ref()
+            .map(|m| m.len())
+            .unwrap_or_else(|| 1))
+            .map(|_| Vec::with_capacity(self.indices.len() * 3))
+            .collect();
 
         for IndexTuoel {
             vertex,
@@ -44,13 +49,13 @@ impl ObjFile {
             style,
         } in self.indices.iter()
         {
+            let mesh = &mut meshes[style.unwrap_or_else(|| 0) as usize];
             mesh.push(Vertex {
                 position: self.vertices[vertex[0] as usize],
                 normal: self.normals[normals[0] as usize],
                 texture: texture
                     .map(|tex| self.textures[tex[0] as usize])
                     .unwrap_or_else(|| [0f32, 0f32]),
-                style: style.unwrap_or_else(|| 0) as u32,
             });
             mesh.push(Vertex {
                 position: self.vertices[vertex[1] as usize],
@@ -58,7 +63,6 @@ impl ObjFile {
                 texture: texture
                     .map(|tex| self.textures[tex[1] as usize])
                     .unwrap_or_else(|| [0f32, 0f32]),
-                style: style.unwrap_or_else(|| 0) as u32,
             });
             mesh.push(Vertex {
                 position: self.vertices[vertex[2] as usize],
@@ -66,11 +70,10 @@ impl ObjFile {
                 texture: texture
                     .map(|tex| self.textures[tex[2] as usize])
                     .unwrap_or_else(|| [0f32, 0f32]),
-                style: style.unwrap_or_else(|| 0) as u32,
             });
         }
 
-        mesh
+        meshes
     }
 
     fn read_mtl_lib(filename: &str) -> Result<Vec<Material>, ()> {

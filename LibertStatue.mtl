@@ -3,7 +3,6 @@ Ns 50
 Ka 0 0 0
 Kd 0.195441 0.263741 0.2537
 Ks 0.0237312 0.0522111 0.0793909
-map_Kd Liberty-GreenBronze-1.bmp
 newmtl 7_-_Default
 Ns 10
 Ka 0 0 0
@@ -39,4 +38,3 @@ Ns 10
 Ka 0 0 0
 Kd 0.709804 0.643137 0
 Ks 0.996078 0.839216 0.0901961
-map_Kd Liberty-GreenBronze-1.bmp
