@@ -17,11 +17,8 @@ struct Style
 layout(set = 0, binding = 1) uniform uniforms {
     vec2 windowSize;
     vec3 viewPos;
-    Style[7] styles;
-
+    Style[10] styles;
 };
-layout(set = 0, binding = 2) uniform sampler textureSampler;
-layout(set = 0, binding = 3) uniform texture2D[7] textureIn;
 
 void main() {
     //vec2 position = gl_FragCoord.xy / windowSize;
@@ -41,9 +38,9 @@ void main() {
 
     vec3 viewDir = normalize(viewPos - fragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), styles[style].specular_exponent);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0),16);
     vec3 specular = 0.5 * spec * styles[style].specular_color;
 
 
-    outColor = vec4(diffuse + specular + ambient, 1.0) * 0.5 + texture(sampler2D(textureIn[2], textureSampler), texturePos) * 0.5;
+    outColor = vec4(diffuse + specular + ambient, 1.0);
 }

@@ -50,7 +50,7 @@ impl ObjFile {
                 texture: texture
                     .map(|tex| self.textures[tex[0] as usize])
                     .unwrap_or_else(|| [0f32, 0f32]),
-                style: style.unwrap_or_else(|| 255) as u32,
+                style: style.unwrap_or_else(|| 0) as u32,
             });
             mesh.push(Vertex {
                 position: self.vertices[vertex[1] as usize],
@@ -58,7 +58,7 @@ impl ObjFile {
                 texture: texture
                     .map(|tex| self.textures[tex[1] as usize])
                     .unwrap_or_else(|| [0f32, 0f32]),
-                style: style.unwrap_or_else(|| 255) as u32,
+                style: style.unwrap_or_else(|| 0) as u32,
             });
             mesh.push(Vertex {
                 position: self.vertices[vertex[2] as usize],
@@ -66,7 +66,7 @@ impl ObjFile {
                 texture: texture
                     .map(|tex| self.textures[tex[2] as usize])
                     .unwrap_or_else(|| [0f32, 0f32]),
-                style: style.unwrap_or_else(|| 255) as u32,
+                style: style.unwrap_or_else(|| 0) as u32,
             });
         }
 
@@ -267,7 +267,7 @@ impl ObjFile {
 
 #[derive(Debug)]
 pub struct Material {
-    name: String,
+    pub name: String,
     pub ambient_color: Option<[f32; 3]>,
     pub diffuse_color: Option<[f32; 3]>,
     pub specular_color: Option<[f32; 3]>,

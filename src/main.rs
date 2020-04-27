@@ -112,7 +112,6 @@ struct Renderer {
     size: PhysicalSize<u32>,
     mesh_buffer: Option<Buffer>,
     materials: Option<Vec<Material>>,
-    textures: Option<Vec<TextureView>>,
     vertices_count: u32,
 }
 
@@ -156,7 +155,6 @@ impl Renderer {
             binding_layout: None,
             size: window.inner_size(),
             mesh_buffer: None,
-            textures: None,
             materials: None,
             vertices_count: 0,
         }
@@ -169,9 +167,19 @@ impl Renderer {
 
     fn init_pipeline(&mut self) {
         let device = &self.device;
-        let object = ObjFile::read("LibertStatue.obj").unwrap();
+        let object = ObjFile::read("minicooper.obj").unwrap();
         let mesh = object.flatten();
         self.materials = object.materials;
+        //if self.materials == None {
+        self.materials = Some(vec![Material {
+            name: "".to_string(),
+            texture: None,
+            specular_exponent: Some(16),
+            specular_color: Some([0.1, 0.4, 0.1]),
+            diffuse_color: Some([0.5, 1.0, 0.5]),
+            ambient_color: Some([1.0, 0.5, 0.5]),
+        }]);
+        //}
         let mesh_buffer =
             device.create_buffer_with_data(bytemuck::cast_slice(&mesh), BufferUsage::VERTEX);
         self.mesh_buffer = Some(mesh_buffer);
@@ -195,74 +203,6 @@ impl Renderer {
                     binding: 1,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::UniformBuffer { dynamic: false },
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler { comparison: false },
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 3,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::SampledTexture {
-                        dimension: wgpu::TextureViewDimension::D2,
-                        component_type: wgpu::TextureComponentType::Uint,
-                        multisampled: false,
-                    },
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 4,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::SampledTexture {
-                        dimension: wgpu::TextureViewDimension::D2,
-                        component_type: wgpu::TextureComponentType::Uint,
-                        multisampled: false,
-                    },
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 5,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::SampledTexture {
-                        dimension: wgpu::TextureViewDimension::D2,
-                        component_type: wgpu::TextureComponentType::Uint,
-                        multisampled: false,
-                    },
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 6,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::SampledTexture {
-                        dimension: wgpu::TextureViewDimension::D2,
-                        component_type: wgpu::TextureComponentType::Uint,
-                        multisampled: false,
-                    },
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 7,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::SampledTexture {
-                        dimension: wgpu::TextureViewDimension::D2,
-                        component_type: wgpu::TextureComponentType::Uint,
-                        multisampled: false,
-                    },
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 8,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::SampledTexture {
-                        dimension: wgpu::TextureViewDimension::D2,
-                        component_type: wgpu::TextureComponentType::Uint,
-                        multisampled: false,
-                    },
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 9,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::SampledTexture {
-                        dimension: wgpu::TextureViewDimension::D2,
-                        component_type: wgpu::TextureComponentType::Uint,
-                        multisampled: false,
-                    },
                 },
             ],
             label: None,
@@ -341,75 +281,6 @@ impl Renderer {
             alpha_to_coverage_enabled: false,
         });
         self.pipeline = Some(render_pipeline);
-        self.load_textures();
-    }
-
-    fn load_textures(&mut self) {
-        let device = &mut self.device;
-        let mut encoder =
-            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        let textures = self
-            .materials
-            .as_ref()
-            .unwrap()
-            .iter()
-            .map(|m| {
-                let image = m.texture.as_ref().unwrap();
-
-                let texture_extend = Extent3d {
-                    width: image.get_width(),
-                    height: image.get_height(),
-                    depth: 1,
-                };
-                let texture = device.create_texture(&wgpu::TextureDescriptor {
-                    size: texture_extend,
-                    mip_level_count: 1,
-                    sample_count: 1,
-                    dimension: wgpu::TextureDimension::D2,
-                    format: TextureFormat::Rgba8Unorm,
-                    usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
-                    label: None,
-                    array_layer_count: 1,
-                });
-
-                let mut image_arr =
-                    Vec::with_capacity((image.get_width() * image.get_height() * 4) as usize);
-                for y in 0..image.get_height() {
-                    for x in 0..image.get_width() {
-                        let pixel = image.get_pixel(x, y);
-                        image_arr.push(pixel.r);
-                        image_arr.push(pixel.g);
-                        image_arr.push(pixel.b);
-                        image_arr.push(255);
-                    }
-                }
-
-                let texture_view = texture.create_default_view();
-
-                let temp_buf =
-                    device.create_buffer_with_data(&image_arr, wgpu::BufferUsage::COPY_SRC);
-                encoder.copy_buffer_to_texture(
-                    wgpu::BufferCopyView {
-                        buffer: &temp_buf,
-                        offset: 0,
-                        bytes_per_row: 4 * image.get_width(),
-                        rows_per_image: 0,
-                    },
-                    wgpu::TextureCopyView {
-                        texture: &texture,
-                        mip_level: 0,
-                        array_layer: 0,
-                        origin: wgpu::Origin3d::ZERO,
-                    },
-                    texture_extend,
-                );
-                texture_view
-            })
-            .collect::<Vec<TextureView>>();
-
-        self.queue.submit(&[encoder.finish()]);
-        self.textures = Some(textures);
     }
 
     fn draw(&mut self) {
@@ -429,14 +300,14 @@ impl Renderer {
         let rot = self.counter;
         self.counter += 0.4;
 
-        let model_matrix = Matrix4::from_angle_z(Deg(rot))
-            * Matrix4::from_angle_x(Deg(90f32))
-            * Matrix4::from_scale(1.5f32)
-            * Matrix4::from_translation(vec3(0f32, -0.7f32, 0f32));
-
         /*let model_matrix = Matrix4::from_angle_z(Deg(rot))
-         * Matrix4::from_scale(0.02f32)
-         * Matrix4::from_translation(vec3(0f32, -0f32, -13f32));*/
+         * Matrix4::from_angle_x(Deg(90f32))
+         * Matrix4::from_scale(1.5f32)
+         * Matrix4::from_translation(vec3(0f32, -0.7f32, 0f32));*/
+
+        let model_matrix = Matrix4::from_angle_z(Deg(rot))
+            * Matrix4::from_scale(0.02f32)
+            * Matrix4::from_translation(vec3(0f32, -0f32, -13f32));
 
         let normal_matrix = model_matrix.inverse_transform().unwrap().transpose();
 
@@ -451,42 +322,28 @@ impl Renderer {
             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         );
 
-        let styles = self
-            .materials
-            .as_ref()
-            .unwrap()
-            .iter()
-            .map(|m| Style {
+        let mut styles = [unsafe { mem::zeroed() }; 10];
+
+        let materials = self.materials.as_ref().unwrap();
+        for i in 0..materials.len() {
+            let m = &materials[i];
+            styles[i] = Style {
                 ambient_color: m.ambient_color.as_ref().unwrap().clone(),
                 diffuse_color: m.diffuse_color.as_ref().unwrap().clone(),
                 specular_color: m.specular_color.as_ref().unwrap().clone(),
                 specular_exponent: m.specular_exponent.unwrap() as u32,
-            })
-            .collect::<Vec<Style>>();
+            }
+        }
 
         let fragment_uniforms = FragmentUniforms {
             size: vec2(self.size.width as f32, self.size.height as f32),
             view_pos,
-            styles: [
-                styles[0], styles[1], styles[2], styles[3], styles[4], styles[5], styles[6],
-            ],
+            styles,
         };
         let fragment_uniforms_buffer = device.create_buffer_with_data(
             bytemuck::bytes_of(&fragment_uniforms),
             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         );
-
-        let sampler = device.create_sampler(&SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::FilterMode::Nearest,
-            lod_min_clamp: 0.0,
-            lod_max_clamp: 100.0,
-            compare: wgpu::CompareFunction::Undefined,
-        });
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: self.binding_layout.as_ref().unwrap(),
@@ -504,52 +361,6 @@ impl Renderer {
                         buffer: &fragment_uniforms_buffer,
                         range: 0..(mem::size_of::<FragmentUniforms>() as u64),
                     },
-                },
-                wgpu::Binding {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                },
-                wgpu::Binding {
-                    binding: 3,
-                    resource: wgpu::BindingResource::TextureView(
-                        &self.textures.as_ref().unwrap()[0],
-                    ),
-                },
-                wgpu::Binding {
-                    binding: 4,
-                    resource: wgpu::BindingResource::TextureView(
-                        &self.textures.as_ref().unwrap()[0],
-                    ),
-                },
-                wgpu::Binding {
-                    binding: 5,
-                    resource: wgpu::BindingResource::TextureView(
-                        &self.textures.as_ref().unwrap()[0],
-                    ),
-                },
-                wgpu::Binding {
-                    binding: 6,
-                    resource: wgpu::BindingResource::TextureView(
-                        &self.textures.as_ref().unwrap()[0],
-                    ),
-                },
-                wgpu::Binding {
-                    binding: 7,
-                    resource: wgpu::BindingResource::TextureView(
-                        &self.textures.as_ref().unwrap()[0],
-                    ),
-                },
-                wgpu::Binding {
-                    binding: 8,
-                    resource: wgpu::BindingResource::TextureView(
-                        &self.textures.as_ref().unwrap()[0],
-                    ),
-                },
-                wgpu::Binding {
-                    binding: 9,
-                    resource: wgpu::BindingResource::TextureView(
-                        &self.textures.as_ref().unwrap()[0],
-                    ),
                 },
             ],
             label: None,
@@ -661,7 +472,7 @@ struct Style {
 struct FragmentUniforms {
     size: Vector2<f32>,
     view_pos: Point3<f32>,
-    styles: [Style; 7],
+    styles: [Style; 10],
 }
 
 unsafe impl Pod for FragmentUniforms {}
