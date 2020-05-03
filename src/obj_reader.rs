@@ -22,9 +22,9 @@ pub struct ObjFile {
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Vertex {
-    position: [f32; 3],
-    normal: [f32; 3],
-    texture: [f32; 2],
+    pub position: [f32; 3],
+    pub normal: [f32; 3],
+    pub texture: [f32; 2],
 }
 
 unsafe impl Pod for Vertex {}
